@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.survey.product.registration.dao.ReceiptRegistrationDeletionDAO">
+    <update id="updateDeletionYnBy" parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.ReceiptRegistrationDeletionCommand">
+        UPDATE  TB_HAC_PRO_REST_BAS                    /* [HAC제품등록기본] */
+        SET     DEL_YN         =  #{deletionYn},       /* 삭제여부          */
+                LAST_CHNG_DTT  =  NOW(),               /* 최종변경일시      */
+                LAST_CHNGR_NO  =  #{currentEmpUsersNo} /* 최종변경자번호    */
+        WHERE   PRO_RGST_SNO  IN (
+                                  ''
+        <foreach item="data" collection="list" open="," separator=",">
+                                  #{data.productRegistrationSno}
+        </foreach>
+                                 )                     /* 제품등록일련번호  */
+          AND   EMP_USR_NO     =  #{currentEmpUsersNo} /* EMP사용자번호     */
+          AND   DEL_YN         != #{deletionYn}        /* 삭제여부          */
+    </update>
+
+    <delete id="deleteSurveyResultBy" parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.ReceiptRegistrationDeletionCommand">
+        DELETE
+        FROM    TB_HAC_SUVY_QSTN_RSLT_BAS /* [HAC문진설문답안기본] */
+        WHERE   PRO_RGST_SNO  IN (
+                                  ''
+        <foreach item="data" collection="list" open="," separator=",">
+                                  #{data.productRegistrationSno}
+        </foreach>
+                                 )        /* 제품일련등록번호      */
+    </delete>
+</mapper>

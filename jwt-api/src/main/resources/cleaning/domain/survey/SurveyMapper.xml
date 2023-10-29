@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.survey.dao.SurveyDAO">
+    <select id="selectQuestionList" resultType="com.hac.rest.v1.cleaning.domain.survey.dto.SurveyQuestionOne">
+        SELECT  A1.SUVY_ID              AS SURVEY_ID,
+                A1.QSTN_NO              AS QUESTION_ID,
+                A1.QSTN_CTNT            AS QUESTION_CONTENT,
+                A1.QSTN_CTNT_DESC       AS QUESTION_CONTENT_DESCRIPTION
+        FROM    TB_HAC_SUVY_QSTN_BAS    A1
+        WHERE   A1.SUVY_ID = #{surveyId}
+        ORDER BY
+                A1.QSTN_ORDR
+    </select>
+
+    <select id="selectOptionAndAnswerYnListBy" resultType="com.hac.rest.v1.cleaning.domain.survey.dto.SurveyOptionOne">
+        SELECT  A1.QSTN_WTCH_SEQ                        AS OPTION_ID,       /* 보기 ID */
+                A1.QSTN_WTCH_CTNT                       AS OPTION_CONTENT,  /* 보기내용 */
+                IF(ISNULL(B1.QSTN_WTCH_SEQ), 'N', 'Y')  AS CHECK_YN         /* 선택여부 */
+        FROM    TB_HAC_SUVY_QSTN_SAMP_BAS   A1          /* HAC 문진질문보기기본 */
+        LEFT JOIN
+                TB_HAC_SUVY_QSTN_RSLT_BAS   B1          /* HAC 문진설문답안기본 */
+            ON  B1.SUVY_ID          = A1.SUVY_ID
+            AND B1.QSTN_NO          = A1.QSTN_NO
+            AND B1.QSTN_WTCH_SEQ    = A1.QSTN_WTCH_SEQ
+            AND B1.PRO_RGST_SNO     = #{productRegistrationSno}
+        WHERE   A1.SUVY_ID          = #{surveyId}
+            AND A1.QSTN_NO          = #{questionId}
+        ORDER BY
+                A1.QSTN_WTCH_SEQ
+    </select>
+
+    <select id="countBy" parameterType="string" resultType="integer">
+        SELECT  COUNT(1)
+        FROM    TB_HAC_SUVY_BAS   A1
+        WHERE   A1.SUVY_ID  = #{surveyId}
+    </select>
+</mapper>

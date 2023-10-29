@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.notice.inspection.dao.NoticeInspectionDAO">
+    <select id="selectNoticeInspectionBy" resultType="com.hac.rest.v1.cleaning.domain.notice.inspection.dto.NoticeInspectionView">
+        SELECT	A1.NOTI_TTL		    AS TITLE,
+                A1.NOTI_CTNT		AS BODY,
+                A1.APLY_STRT_DTT	AS INSPECTION_START_AT,
+                A1.APLY_END_DTT	    AS INSPECTION_END_AT
+        FROM 	TB_HAC_ERR_NOTI_BAS A1
+        WHERE 	A1.DEL_YN = 'N'
+        AND 	A1.ST_CD = 'ERNT_ST_1'
+        AND 	A1.CD_TP_CD = FN_GET_CODE_ID('ERNT_TY_IM', #{noticeCode})
+        AND 	NOW() BETWEEN A1.APLY_STRT_DTT AND A1.APLY_END_DTT
+        ORDER BY
+		        A1.APLY_STRT_DTT
+        LIMIT 1
+    </select>
+
+    <select id="selectNoticeInspectionNextBy" resultType="com.hac.rest.v1.cleaning.domain.notice.inspection.dto.NoticeInspectionView">
+        SELECT	A1.NOTI_TTL		    AS TITLE,
+                A1.NOTI_CTNT		AS BODY,
+                A1.APLY_STRT_DTT	AS INSPECTION_START_AT,
+                A1.APLY_END_DTT	    AS INSPECTION_END_AT
+        FROM 	TB_HAC_ERR_NOTI_BAS A1
+        WHERE 	A1.DEL_YN = 'N'
+        AND 	A1.ST_CD = 'ERNT_ST_1'
+        AND 	A1.CD_TP_CD = FN_GET_CODE_ID('ERNT_TY_IM', #{noticeCode})
+        AND 	A1.APLY_STRT_DTT <![CDATA[>]]> NOW()
+        ORDER BY
+		        A1.APLY_STRT_DTT
+        LIMIT 1
+    </select>
+</mapper>

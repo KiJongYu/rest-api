@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.survey.product.registration.dao.ReceiptRegistrationUpdateDAO">
+    <update id="updateSurveyAnswerBy"
+            parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.SurveyTreeCommand">
+        UPDATE  TB_HAC_SUVY_QSTN_RSLT_BAS
+        SET     QSTN_WTCH_SEQ   = #{selectedOptionId},
+                LAST_CHNG_DTT   = NOW(), /* 최종 변경 날짜 */
+                LAST_CHNGR_NO   = #{currentEmpUsersNo} /* 최종 변경자 */
+        WHERE   PRO_RGST_SNO    = #{productRegistrationSno} /* 제품 등록 일련 번호 */
+            AND SUVY_ID         = #{surveyId} /* 설문 ID */
+            AND QSTN_NO         = #{questionId} /* 질문 ID */
+    </update>
+
+    <update id="updateForCompleteBy" parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.RegistrationProductUpdateCommand">
+        /* 세척 완료 후 세척일자 자동 업데이트 */
+        UPDATE  TB_HAC_PRO_REST_BAS /* HAC 제품등록기본 */
+        SET     CLN_DT          = #{cleaningOn},
+                LAST_CHNG_DTT   = NOW(),
+                LAST_CHNGR_NO   = #{currentEmpUsersNo}
+        WHERE   EMP_USR_NO      = #{currentEmpUsersNo}
+            AND PRO_RGST_SNO    = #{productRegistrationSno}
+    </update>
+
+    <update id="updateForProductBy" parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.RegistrationProductUpdateCommand">
+        /* 사용자 문진 수정 시 제품코드와 닉네임을 업데이트한다. */
+        UPDATE  TB_HAC_PRO_REST_BAS /* HAC 제품등록기본 */
+        SET     PRO_CD      = #{productCode},
+                NKNM        = #{productNickName},
+                LAST_CHNG_DTT   = NOW(),
+                LAST_CHNGR_NO   = #{currentEmpUsersNo}
+        WHERE   EMP_USR_NO      = #{currentEmpUsersNo}
+            AND PRO_RGST_SNO    = #{productRegistrationSno}
+    </update>
+
+    <update id="updateForSurveyBy" parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.RegistrationProductUpdateCommand">
+        /* 사용자 문진 수정 시 구매일자 및 세척일자를 업데이트한다.
+           CLN_DT(세척일자)가 null 일 경우에는 null로 저장하기 위해 동적쿼리를 사용하지 않음.
+           updateForCompleteBy
+           updateForProductBy
+           updateForSurveyBy
+        */
+        UPDATE  TB_HAC_PRO_REST_BAS /* HAC 제품등록기본 */
+        SET     PRO_PURC_DT = #{purchaseOn},
+                CLN_DT      = #{cleaningOn},
+                LAST_CHNG_DTT   = NOW(),
+                LAST_CHNGR_NO   = #{currentEmpUsersNo}
+        WHERE   EMP_USR_NO      = #{currentEmpUsersNo}
+            AND PRO_RGST_SNO    = #{productRegistrationSno}
+    </update>
+
+    <update id="updateSurveyForCleaningCompleteBy">
+        /*
+        * 세척 완료 후 문진 자동 업데이트
+        * 모든 질문의 보기를 2번으로 지정한다.
+        * 자동 업데이트 내용 : 오염1-아니요, 오염2-아니요, 세척이력-세척이력 있음
+        */
+        UPDATE  TB_HAC_SUVY_QSTN_RSLT_BAS /* HAC 문진설문답안기본 */
+        SET     QSTN_WTCH_SEQ   = 2,
+                LAST_CHNG_DTT   = NOW(),
+                LAST_CHNGR_NO   = #{userNo}
+        WHERE   PRO_RGST_SNO    = #{productRegistrationSno}
+    </update>
+</mapper>

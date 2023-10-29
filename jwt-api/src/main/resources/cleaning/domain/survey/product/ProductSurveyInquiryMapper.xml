@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.survey.product.dao.ProductSurveyInquiryDAO">
+    <select id="selectListBy" resultType="com.hac.rest.v1.cleaning.domain.survey.product.dto.ProductSurveyInquiryProductOne">
+        SELECT  A1.NKNM        AS NICKNAME      /* 별명              */
+        FROM    TB_HAC_PRO_REST_BAS A1          /* [HAC제품등록기본] */
+        WHERE   A1.EMP_USR_NO  =  #{empUsersNo} /* EMP사용자번호     */
+        AND     A1.DEL_YN      =  'N'           /* 삭제여부          *//* N.부 */
+    </select>
+</mapper>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.indicator.card.dao.IndicatorCardDAO">
+    <select id="selectProductOneBy"  parameterType="String" resultType="com.hac.rest.v1.cleaning.domain.indicator.card.dto.IndicatorCardProductOne">
+		SELECT
+				A1.PRO_RGST_SNO        	AS PRODUCT_REGISTRATION_SNO,
+			 	A1.NKNM              	AS PRODUCT_NICK_NAME,
+			 	A1.PRO_GRP_CD        	AS PRODUCT_GROUP_CODE,
+			 	(SELECT  PRO_NM
+				 FROM    TB_HAC_PROD_BAS
+				 WHERE   PRO_CD = A1.PRO_GRP_CD)
+			 	    					AS PRODUCT_GROUP_NAME,
+			 	A1.PRO_CD            	AS PRODUCT_CODE,
+			 	B1.PRO_NM				AS PRODUCT_NAME,
+			 	IF(B1.POST_YN = 'Y' AND NOW() BETWEEN B1.VLD_STRT_DTT AND B1.VLD_EXPL_DTT, 'Y', 'N') 
+			 	    					AS POST_YN,
+			 	B1.DEL_YN				AS DELETE_YN,
+			 	A1.PRO_PURC_DT       	AS PRODUCT_PURCHASE_ON,
+			 	A1.CLN_DT            	AS CLEANING_ON,
+			 	A1.LAST_CHNG_DTT		AS LAST_MODIFY_ON
+		FROM 	TB_HAC_PRO_REST_BAS A1
+		LEFT JOIN TB_HAC_PROD_BAS B1
+		ON 		A1.PRO_CD = B1.PRO_CD
+		WHERE 	A1.DEL_YN = 'N'
+		  AND   A1.EMP_USR_NO = #{empUserNo}
+		  AND	EXISTS (SELECT  *
+						FROM 	TB_HAC_SUVY_QSTN_RSLT_BAS
+						WHERE 	PRO_RGST_SNO = A1.PRO_RGST_SNO)
+		ORDER BY
+				A1.LAST_CHNG_DTT DESC
+    </select>
+
+	<select id="selectProductSurveyOneBy"  parameterType="Integer" resultType="com.hac.rest.v1.cleaning.domain.indicator.card.dto.IndicatorCardProductSurveyOne">
+		SELECT	A1.QSTN_NO			AS QUESTION_ID ,
+				A1.QSTN_WTCH_SEQ	AS SELECTED_OPTION_ID
+		FROM	TB_HAC_SUVY_QSTN_RSLT_BAS A1
+		WHERE	A1.PRO_RGST_SNO	= #{productRegistrationSno}
+	</select>
+</mapper>

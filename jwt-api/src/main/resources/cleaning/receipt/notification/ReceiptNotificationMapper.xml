@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.receipt.notification.dao.ReceiptNotificationDAO">
+    <select id="selectReceiptListForSurveyNotification" parameterType="string" resultType="string">
+        SELECT  A1.REPA_RCP_NO /* 세척접수번호 */
+        FROM    TB_HAC_CLN_SVC_REQ_BAS  A1 /* 세척요청기본 */
+        WHERE   A1.EMP_USR_NO   = #{USER_NO}
+            AND A1.DEL_YN       = 'N' /* 삭제여부 */
+            AND A1.PRO_RGST_SNO IS NULL /* 신호등을 통한 사전세척이 아닌경우 */
+            AND A1.QSTN_UPD_ARAM_ST_CD   = 'ARAM_ST_3' /* 알림 미발송 "N" */
+            AND A1.FRST_CRT_DTT <![CDATA[ >= ]]> DATE_ADD(NOW(), INTERVAL -1 YEAR)
+            AND A1.FRST_CRT_DTT <![CDATA[ <= ]]> NOW()
+    </select>
+
+    <update id="updateBy">
+        UPDATE  TB_HAC_CLN_SVC_REQ_BAS
+        SET     QSTN_UPD_ARAM_ST_CD   = #{aramCode} /* 알림 발송 코드 */
+        WHERE   REPA_RCP_NO IN  <foreach item="receiptNo" collection="receiptNoList" open="(" separator="," close=")">
+                                    #{receiptNo}
+                                </foreach>
+    </update>
+</mapper>

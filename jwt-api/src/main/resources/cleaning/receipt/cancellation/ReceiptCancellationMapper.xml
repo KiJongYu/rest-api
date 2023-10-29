@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.receipt.cancellation.dao.ReceiptCancellationDao">
+    
+    <update id="updateOneBy" parameterType="com.hac.rest.v1.cleaning.domain.receipt.cancellation.dto.ReceiptCancellationUpdateCommand">
+        UPDATE  TB_HAC_CLN_SVC_REQ_BAS                                       /* [세척서비스기본]  	*/
+        SET     DEL_YN                		=  'Y',							 /* 취소여부        	*/
+                LAST_CHNGR_NO               =  #{lastModifiedBy},            /* 최종변경자번호    	*/
+                LAST_CHNG_DTT               =  #{lastModifiedAt}  			 /* 최종변경일시      	*/
+        WHERE   REPA_RCP_NO       		    =  #{receiptNo}             	 /* 세척일련번호      	*/
+    </update>
+   
+</mapper>

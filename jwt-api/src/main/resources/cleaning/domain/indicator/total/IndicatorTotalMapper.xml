@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.indicator.total.dao.IndicatorTotalDAO">
+    <select id="selectGroupOnes" resultType="com.hac.rest.v1.cleaning.domain.indicator.total.dto.IndicatorTotalGroupOne">
+		SELECT  A1.PRO_CD           AS PRODUCT_GROUP_CODE,    /* 제품그룹코드 */
+				A1.PRO_NM           AS PRODUCT_GROUP_NAME     /* 제품그룹명 */
+		FROM    TB_HAC_PROD_BAS A1
+		WHERE	A1.UPR_PRO_CD   = 'HAC000'
+		AND 	A1.POST_YN      = 'Y'
+		AND 	A1.DEL_YN       = 'N'
+		ORDER BY
+		A1.EXPS_SEQ
+    </select>
+
+</mapper>

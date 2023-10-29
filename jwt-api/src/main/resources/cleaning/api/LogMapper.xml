@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.api.dao.LogDAO">
+    <insert id="insertOneBy" parameterType="com.hac.rest.v1.cleaning.domain.api.dto.LogCommand">
+        INSERT INTO TB_HAC_REQ_HIST_DTL /* [HAC요청이력상세] */
+                (REQ_SNO, ETR_PATH_NM, SUB_SVC_NM, USR_ID, REQ_DTS, RSPS_DTS, URL, DEL_YN, REG_DTTM, REG_USER_ID, UPD_DTTM, UPD_USER_ID)
+        SELECT  (
+                 SELECT  COALESCE(MAX(AL.REQ_SNO), 0) + 1 /* 요청일련번호      */
+                 FROM    TB_HAC_REQ_HIST_DTL AL           /* [HAC요청이력상세] */
+                )                                         AS REQUEST_SNO,                /* 요청일련번호      */
+                SUBSTRING(#{entryPathName}     , 1, 500)  AS ENTRY_PATH_NAME,            /* 진입경로명        */
+                SUBSTRING(#{subServiceName}    , 1, 500)  AS SUB_SERVICE_NAME,           /* 서브서비스명      */
+                SUBSTRING(#{usersId}           , 1, 32)   AS USERS_ID,                   /* 사용자ID          */
+                #{requestDatetimestamp}                   AS REQUEST_DATETIMESTAMP,      /* 요청일시TS        */
+                #{responseDatetimestamp}                  AS RESPONSE_DATETIMESTAMP,     /* 응답일시TS        */
+                SUBSTRING(#{url}               , 1, 4000) AS URL,                        /* URL               */
+                #{deletionYn}                             AS DELETION_YN,                /* 삭제여부          */
+                #{registrationDatimeandtime}              AS REGISTRATION_DATIMEANDTIME, /* 최초생성일시      */
+                SUBSTRING(#{registrationUserId}, 1, 50)   AS REGISTRATION_USER_ID,       /* 최초생성자번호    */
+                #{updationDatimeandtime}                  AS UPDATION_DATIMEANDTIME,     /* 최종변경일시      */
+                SUBSTRING(#{updationUserId}    , 1, 50)   AS UPDATION_USER_ID            /* 최종변경자번호    */
+        WHERE   EXISTS
+                (
+                 SELECT  1 /* DV서버가 아닌 경우 이력생성여부 컬럼값에 따라 요청이력을 등록한다. */
+                 FROM    TB_HAC_API_INFO_BAS  X1                             /* [HAC API 기본]     */
+                 WHERE   X1.API_URL           = #{apiUrl}                    /* APIURL             */
+                 AND     X1.REQ_MTD_NM        = #{requestMethodName}         /* 요청메소드명       */
+                 AND     X1.DEL_YN            = 'N'                          /* 삭제여부           */
+                 AND     (
+                          'Y' = X1.OPRT_HIST_CRT_YN AND #{opServerType}    = #{serverType} /* 운영이력생성여부   *//* 서버유형; OP */
+                          OR
+                          'Y' = X1.QA_HIST_CRT_YN   AND #{qaServerType}    = #{serverType} /* QA이력생성여부     *//* 서버유형; QA */
+                          OR
+                          'Y' = X1.SST_HIST_CRT_YN  AND #{devServerType}   = #{serverType} /* ST이력생성여부     *//* 서버유형; DEV */
+                          OR
+                                                        #{localServerType} = #{serverType}                         /* 서버유형; LOCAL */
+                         )
+                )
+    </insert>
+</mapper>

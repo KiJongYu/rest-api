@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.api.dao.ApiDAO">
+    <select id="selectOneBy" resultType="com.hac.rest.v1.cleaning.domain.api.dto.ApiView" parameterType="com.hac.rest.v1.cleaning.domain.api.dto.ApiQuery">
+        SELECT  A1.API_URL           AS API_URL,                       /* APIURL             */
+                A1.REQ_MTD_NM        AS REQUEST_METHOD_NAME,           /* 요청메소드명       */
+                A1.OPRT_USE_YN       AS OPERATION_USE_YN,              /* 운영사용여부       */
+                A1.QA_USE_YN         AS QA_USE_YN,                     /* QA사용여부         */
+                A1.SST_USE_YN        AS STSERVER_USE_YN,               /* ST사용여부         */
+                A1.DEL_YN            AS DELETION_YN                    /* 삭제여부           */
+        FROM    TB_HAC_API_INFO_BAS  A1                                /* [HAC API 기본] */
+        WHERE   A1.API_URL           = #{apiUrl}                       /* APIURL             */
+        AND     A1.REQ_MTD_NM        = #{requestMethodName}            /* 요청메소드명       */
+    </select>
+</mapper>

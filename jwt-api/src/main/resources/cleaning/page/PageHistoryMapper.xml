@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.page.dao.PageHistoryDAO">
+    <insert id="insertOneBy" parameterType="com.hac.rest.v1.cleaning.domain.page.dto.PageHistoryCommand">
+        INSERT INTO TB_HAC_API_CAL_LOG_DTL /* [HACAPI호출로그상세] *//* PK - API_CAL_SNO.API호출일련번호(AUTO_INCREMENT) *//* 주의) FK - TB_HAC_USER_BAS.EMP_USR_NO */
+              /* EMP사용자번호      , 화면URL    , 조회일시     */
+               ( EMP_USR_NO         , SCRN_URL   , SLCT_DTT     )
+        VALUES ( #{currentLoginUser}, #{pageName}, #{createdAt} )
+    </insert>
+</mapper>

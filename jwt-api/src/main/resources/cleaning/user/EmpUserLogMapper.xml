@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.user.dao.EmpUserLogDAO">
+    <insert id="insertOrUpdateBy" parameterType="com.hac.rest.v1.cleaning.domain.user.dto.EmpUserLogCommand">
+        INSERT INTO TB_HAC_USER_BAS /* [HAC사용자기본] */
+               /* EMP사용자번호, 국가코드ID      , 등록일시                , 원본최초생성일시                    , 원본최초생성자번호           , 원본최종변경일시                , 원본최종변경자번호       , 최초생성일시                , 최초생성자번호       , 최종변경일시            , 최종변경자번호    */
+                ( EMP_USR_NO   , CNTR_CD_ID      , RGST_DTT                , ORG_REG_DTTM                        , ORG_REG_USER_ID              , ORG_UPD_DTTM                    , ORG_UPD_USER_ID          , REG_DTTM                    , REG_USER_ID          , UPD_DTTM                , UPD_USER_ID       )
+        VALUES  ( #{empUsersNo}, #{countryCodeId}, #{registrationsDatetime}, #{originalRegistrationDatimeandtime}, #{originalRegistrationUserId}, #{originalUpdationDatimeandtime}, #{originalUpdationUserId}, #{registrationDatimeandtime}, #{registrationUserId}, #{updationDatimeandtime}, #{updationUserId} )
+        ON DUPLICATE KEY
+        UPDATE    ORG_UPD_DTTM = (CASE WHEN #{originalUpdationDatimeandtime} <![CDATA[>]]> ORG_UPD_DTTM THEN #{originalUpdationDatimeandtime}
+                                       ELSE ORG_UPD_DTTM END), /* 원본최종변경일시 */
+                  UPD_DTTM     = (CASE WHEN #{updationDatimeandtime}         <![CDATA[>]]> UPD_DTTM     THEN #{updationDatimeandtime}
+                                       ELSE UPD_DTTM     END)  /* 최종변경일시     */
+    </insert>
+</mapper>

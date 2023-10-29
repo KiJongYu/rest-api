@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.variable.dao.VariableDAO">
+    <select id="selectSetupListBy" resultType="com.hac.rest.v1.cleaning.domain.variable.dto.VariableSetupOne">
+        SELECT  A1.STUP_NM           AS SETUP_NAME,                       /* 설정명            */
+                A1.STUP_VAL          AS SETUP_VALUE                       /* 설정값            */
+        FROM    TB_HAC_EVMT_VAR_BAS  A1                                   /* [HAC환경변수기본] */
+        WHERE   A1.GRP_ID            = #{groupId}                         /* 그룹ID            */
+        AND     A1.DEL_YN            =  'N'                               /* 삭제여부          *//* N.부 */
+        ORDER   BY
+                A1.ORDR_SEQ,
+                A1.IDEA_ID
+    </select>
+</mapper>

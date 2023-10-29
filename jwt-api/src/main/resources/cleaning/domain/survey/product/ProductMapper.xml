@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.survey.product.dao.ProductDAO">
+    <select id="selectListBy" resultType="com.hac.rest.v1.cleaning.domain.survey.product.dto.ProductOne">
+        WITH RECURSIVE TEMP_PRODUCTS AS (
+            SELECT  A1.PRO_CD,
+                    A1.PRO_NM,
+                    A1.UPR_PRO_CD,
+                    A1.POST_YN,
+                    A1.DEL_YN,
+                    A1.PRO_TP_CD,
+                    A1.EXPS_SEQ,
+                    A1.VLD_STRT_DTT,
+                    A1.VLD_EXPL_DTT
+            FROM    TB_HAC_PROD_BAS A1
+            WHERE   A1.UPR_PRO_CD   = #{productGroupCode}
+            UNION ALL
+            SELECT  B1.PRO_CD,
+                    B1.PRO_NM,
+                    B1.UPR_PRO_CD,
+                    B1.POST_YN,
+                    B1.DEL_YN,
+                    B1.PRO_TP_CD,
+                    B1.EXPS_SEQ,
+                    B1.VLD_STRT_DTT,
+                    B1.VLD_EXPL_DTT
+            FROM    TB_HAC_PROD_BAS B1
+            INNER JOIN
+                    TEMP_PRODUCTS
+                ON  TEMP_PRODUCTS.PRO_CD = B1.UPR_PRO_CD
+            WHERE  (
+                    B1.POST_YN      = 'Y'
+                    AND
+                    NOW() BETWEEN B1.VLD_STRT_DTT AND B1.VLD_EXPL_DTT
+                    AND
+                    B1.DEL_YN       = 'N'
+                   ) OR (
+                    B1.PRO_CD       = #{selectedProductCode}
+                   )
+        )
+        SELECT  C1.PRO_CD                                           AS PRODUCT_CODE,
+                C1.PRO_NM                                           AS PRODUCT_NAME,
+                IF(C1.PRO_CD = #{selectedProductCode}, 'Y', 'N')    AS CHECK_YN,
+                IF(C1.POST_YN = 'Y' AND NOW() BETWEEN C1.VLD_STRT_DTT AND C1.VLD_EXPL_DTT, 'Y', 'N')
+                                                                    AS POST_YN,
+                C1.DEL_YN                                           AS DELETE_YN
+        FROM    TEMP_PRODUCTS   C1
+        WHERE   C1.PRO_TP_CD = 'P'
+        ORDER BY
+                C1.EXPS_SEQ
+    </select>
+</mapper>

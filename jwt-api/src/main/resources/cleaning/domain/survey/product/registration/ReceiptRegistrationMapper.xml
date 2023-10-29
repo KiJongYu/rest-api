@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.survey.product.registration.dao.ReceiptRegistrationDAO">
+    <select id="selectListBy" resultType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.ProductRegistrationOne">
+        SELECT  A1.PRO_GRP_CD       AS PRODUCT_GROUP_CODE, /* 제품그룹 코드 */
+                (SELECT C1.PRO_NM FROM TB_HAC_PROD_BAS C1 WHERE C1.PRO_CD = A1.PRO_GRP_CD)
+                                    AS PRODUCT_GROUP_NAME, /* 제품그룹 명 */
+                A1.PRO_RGST_SNO     AS PRODUCT_REGISTRATION_SNO, /* 제품등록 일련번호 */
+                A1.PRO_CD           AS PRODUCT_CODE, /* 제품 코드 */
+                B1.PRO_NM           AS PRODUCT_NAME, /* 제품명 */
+                IF(B1.POST_YN = 'Y' AND NOW() BETWEEN B1.VLD_STRT_DTT AND B1.VLD_EXPL_DTT, 'Y', 'N')
+                                    AS POST_YN, /* 게시여부 */
+                B1.DEL_YN           AS DELETE_YN, /* 삭제여부 */
+                A1.NKNM             AS PRODUCT_NICK_NAME, /* 제품 닉네임 */
+                A1.PRO_PURC_DT      AS PRODUCT_PURCHASE_ON, /* 제품 구매일자 */
+                A1.CLN_DT           AS PRODUCT_CLEANING_ON, /* 제품 세척일자 */
+                A1.FRST_CRT_DTT     AS CREATED_ON, /* 작성일 */
+                A1.LAST_CHNG_DTT    AS LAST_MODIFIED_ON /* 수정일 */
+        FROM    TB_HAC_PRO_REST_BAS A1
+        INNER JOIN
+                TB_HAC_PROD_BAS     B1
+            ON  B1.PRO_CD       = A1.PRO_CD
+        WHERE   A1.EMP_USR_NO   = #{userNo} /* 사용자 번호  */
+            AND A1.DEL_YN       = 'N' /* 삭제 여부  */
+        ORDER BY
+                A1.LAST_CHNG_DTT DESC
+    </select>
+
+    <insert id="insertProductBy"
+            parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.ProductSurveyCreateCommand"
+            useGeneratedKeys="true" keyProperty="productRegistrationSno">
+        /* PRO_PURC_DT 값은 KST로 한다. */
+        INSERT TB_HAC_PRO_REST_BAS (EMP_USR_NO, PRO_GRP_CD, NKNM, PRO_CD, PRO_PURC_DT, CLN_DT, FRST_CRT_DTT,
+                                    FRST_CRTR_NO, LAST_CHNG_DTT, LAST_CHNGR_NO)
+            VALUE (#{currentEmpUsersNo}, #{productGroupCode}, #{productNickName}, #{productCode}, #{productPurchaseOn},
+                   #{productCleaningOn}, NOW(), #{currentEmpUsersNo}, NOW(), #{currentEmpUsersNo})
+    </insert>
+
+    <insert id="insertSurveyAnswerBy" parameterType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.SurveyTreeCommand">
+        INSERT TB_HAC_SUVY_QSTN_RSLT_BAS (PRO_RGST_SNO, SUVY_ID, QSTN_NO, QSTN_WTCH_SEQ, FRST_CRT_DTT, FRST_CRTR_NO, LAST_CHNG_DTT, LAST_CHNGR_NO)
+        VALUE   <foreach item="command" collection="commandList" open="" separator="," close="">
+                    (#{command.productRegistrationSno}, #{command.surveyId}, #{command.questionId}, #{command.selectedOptionId},
+                        NOW(), #{command.currentEmpUsersNo}, NOW(), #{command.currentEmpUsersNo})
+                </foreach>
+    </insert>
+
+    <select id="selectBy"
+            resultType="com.hac.rest.v1.cleaning.domain.survey.product.registration.dto.ProductSurveyDetailView">
+        SELECT A1.PRO_RGST_SNO AS PRODUCT_REGISTRATION_SNO, /* 제품 등록 일련 번호 */
+               A1.DEL_YN       AS DEL_YN, /* 삭제 여부  */
+               A1.PRO_GRP_CD   AS PRODUCT_GROUP_CODE /* 제품 군 코드  */
+        FROM TB_HAC_PRO_REST_BAS A1 /* HAC제품등록기본 */
+        WHERE A1.PRO_RGST_SNO = #{productRegistrationSno}
+          AND A1.EMP_USR_NO = #{userNo}
+    </select>
+</mapper>

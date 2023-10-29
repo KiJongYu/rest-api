@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.certification.dao.CertificationDAO">
+    <select id="getOne" parameterType="com.hac.rest.v1.cleaning.domain.receipt.confirmation.dto.ReceiptConfirmationViewQuery" resultType="com.hac.rest.v1.cleaning.domain.receipt.confirmation.dto.ReceiptConfirmationView">
+        SELECT AA1.REPA_RCP_NO                          AS RECEIPT_NO, /* 세척일련번호 */
+               AA1.PRO_CD                               AS PRODUCT_CODE, /* 제품코드 */
+               AA1.PRO_NM                               AS PRODUCT_NAME, /* 제품코드명 */
+               AA1.UPR_PRO_CD                           AS PRODUCT_TYPE_CODE, /* 제품타입코드 */
+               (SELECT PRO_NM FROM TB_HAC_PROD_BAS WHERE PRO_TP_CD = 'Y' AND PRO_CD = AA1.UPR_PRO_CD)
+                                                        AS PRODUCT_TYPE_NAME, /* 제품타입코명     	*/
+               AA1.PRODUCT_GROUP_CODE                   AS PRODUCT_GROUP_CODE, /* 제품그룹코드 */
+               (SELECT PRO_NM FROM TB_HAC_PROD_BAS WHERE PRO_TP_CD = 'G' AND PRO_CD = AA1.PRODUCT_GROUP_CODE)
+                                                        AS PRODUCT_GROUP_NAME, /* 제품그룹코드명     	*/
+               FORMAT(AA1.PROD_PRC, 0)                  AS EXPECT_COST, /* 예상비용 */
+               AA1.PRO_RGST_SNO                         AS PRODUCT_REGISTRATION_SNO,
+               (SELECT NKNM FROM TB_HAC_PRO_REST_BAS WHERE PRO_RGST_SNO = AA1.PRO_RGST_SNO AND DEL_YN = 'N')
+                                                        AS PRODUCT_NICK_NAME,
+               AA1.FRST_CRT_DTT                         AS CREATED_ON,
+               AA1.FRST_CRT_DTT                         AS CREATED_AT
+        FROM (SELECT    A1.EMP_USR_NO,
+                        A1.REPA_RCP_NO,
+                        A1.REQ_DTT,
+                        A1.FWRD_CTNT,
+                        A1.PRO_CD,
+                        E1.PRO_NM,
+                        E1.UPR_PRO_CD,
+                        A1.DEL_YN,
+                        (SELECT UPR_PRO_CD FROM TB_HAC_PROD_BAS BB1 WHERE BB1.PRO_CD = E1.UPR_PRO_CD) PRODUCT_GROUP_CODE,
+                        B1.PROD_PRC,
+                        B1.VLD_STRT_DTT,
+                        B1.VLD_EXPI_DTT,
+                        A1.FRST_CRT_DTT,
+                        A1.PRO_RGST_SNO
+                FROM    TB_HAC_CLN_SVC_REQ_BAS      A1
+                INNER JOIN
+                        TB_HAC_CLN_SVC_PRC_REQ_BAS  B1
+                    ON  A1.PRC_NO = B1.PRC_NO
+                LEFT OUTER JOIN
+                        TB_HAC_PROD_BAS             E1
+                    ON  B1.PRO_CD = E1.PRO_CD
+              WHERE     A1.REPA_RCP_NO = #{receiptNo}
+        ) AA1
+    </select>
+</mapper>

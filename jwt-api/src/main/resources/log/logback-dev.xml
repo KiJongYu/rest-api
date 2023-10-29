@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<property name="jsonLogFilelayoutPattern" value="%msg%n" />
+	
+
+	<appender name="JSONCONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${jsonLogFilelayoutPattern}</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+	    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+	      <layout class="com.hac.rest.v1.cleaning.domain.api.dto.TcnLayout"> 
+	      </layout>
+	    </encoder>
+  	</appender>
+
+	<logger name="org.apache" level="OFF"/>
+	<logger name="io" level="OFF"/>
+	<logger name="reactor" level="OFF"/>
+	<logger name="_org" level="OFF"/>
+
+	<!-- [3] logger -->
+	<root level="DEBUG">
+		<appender-ref ref="STDOUT" />
+	</root>
+	<logger name="jsonFileLogger" level="DEBUG" additivity="false">
+		<appender-ref ref="JSONCONSOLE" />
+	</logger>
+
+</configuration>

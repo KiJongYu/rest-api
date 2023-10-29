@@ -1,0 +1,150 @@
+server:
+  shutdown: graceful
+  port: 8080
+  tomcat:
+    remoteip:
+      internal-proxies: "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|20\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3}|169\\.254\\.\\d{1,3}\\.\\d{1,3}|127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}|0:0:0:0:0:0:0:1|::1"
+      remote-ip-header: x-forwarded-for
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      force: true
+  error:
+    path: /error
+    whitelabel:
+      enabled: true # false
+
+logging:
+  config: classpath:log/logback-${spring.profiles.active}.xml
+  level:
+    jdbc: debug
+    jdbc.sqlonly: off
+    jdbc.sqltiming: debug
+    jdbc.audit: off
+    jdbc.resultset: off
+    jdbc.resultsettable: debug
+    jdbc.connection: error
+    com.zaxxer.hikari: error
+    org.thymeleaf.TemplateEngine.CONFIG: off
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  main:
+    banner-mode: off
+  thymeleaf:
+    cache: false
+#    prefix: classpath:/homecare/
+  web:
+    resources:
+      static-locations: >
+        classpath:/META-INF/resources/,
+        classpath:/resources/,
+        classpath:/static/,
+        classpath:/public/
+#        classpath:/homecare/
+  datasource:
+    hikari:
+      pool-name: pool-hac-was-localhost
+      auto-commit: false
+      minimum-idle: 3
+      maximum-pool-size: 10
+      transaction-isolation: TRANSACTION_READ_UNCOMMITTED
+  config:
+    import:
+     - classpath:application-additional-local.yml
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 4MB # GlobalApiControllerAdvice.java
+      max-request-size: 8MB
+      location: ${java.io.tmpdir}
+
+mybatis:
+  mapper-locations: mapper/**/*.xml
+  type-handlers-package: com.hac.rest.v1.cleaning.basics
+  configuration:
+    map-underscore-to-camel-case: true
+
+security:
+  permit-all-patterns: >
+    "",
+    /,
+    /v1/backend/auth,
+    /v1/backend/auth/*,
+    /actuator/health/*
+  ignore-patterns: >
+    /templates/homecare/favicon.ico,
+    /templates/bestcare/favicon.ico,
+    /homecare,
+    /homecare/*,
+    /bestcare,
+    /bestcare/*,
+    /templates/homecare/static/css/*,
+    /templates/homecare/static/js/*,
+    /templates/homecare/static/media/*,
+    /templates/bestcare/static/css/*,
+    /templates/bestcare/static/js/*,
+    /templates/bestcare/static/media/*,
+    /error
+
+cors: # CorsConfigure.java
+  allowed-origins: >
+    *
+  allowed-methods: >
+    GET,
+    POST
+  allowed-headers: >
+    x-lge-token
+
+file:
+  available-image-extensions: > # AwsS3Utils.java
+    gif,
+    jpeg,
+    jpg,
+    png
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db
+      show-details: always
+      status:
+        http-mapping:
+          DOWN: 503
+          OUT_OF_SERVICE: 503
+          UNKNOWN: 200
+          UP: 200
+        order: DOWN, OUT_OF_SERVICE, UNKNOWN, UP
+
+external:
+  aws:
+    s3: # AwsS3Utils.java
+      top-bucket-name: s3-an2-dev-hac-cnts
+      app-folder: solution
+      cloud-front-uri: https://kic-dev-hac-obj.lgthinq.com
+  thinq:
+    service-open-api: # ExternalThinQAppUserProfileService.java
+      api-key: VGhpblEyLjAgU0VSVklDRQ==
+      thinq-app-level: DEV # 앱 레벨; DEV.개발 레벨
+      service-phase: ST # 형상정보 (ST / QA / OP)
+      origin: SDS # API 호출하는 주체
+    service-server: # deprecated 다른 API 로 변경
+      api-key: VGhpblEyLjAgU0VSVklDRQ==
+      origin: SDS
+  tdm: # ExternalTdmDeviceRegistryInquiryService.java; @deprecated    2023-04-19    유광식    사용하지 않아 삭제할 예정
+    kic:
+      api-key: mjI9nbEA0q1C2E0grhjM948GP7J99Rvx5f4t80HA
+      service-name: bestcare
+  sfdc:
+    service-key: "3fd5f0cc-0b83-4e6c-b1c9-6354e5c8ab2c"

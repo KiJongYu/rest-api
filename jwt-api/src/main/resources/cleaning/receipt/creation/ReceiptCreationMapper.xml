@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.receipt.creation.dao.ReceiptCreationDAO">
+    <insert id="insertCleaningOneBy" parameterType="com.hac.rest.v1.cleaning.domain.receipt.creation.dto.ReceiptCreationCleaningCommand">
+        INSERT INTO TB_HAC_CLN_SVC_REQ_BAS /* [세척서비스요청기본] */
+             /* 알람상태명         , 국가코드ID      , 렌탈여부   , 제품코드      , 가격번호 , 전달내용         , EMP사용자번호 , 요청일시          , 세척접수번호      , 삭제여부|N|  , 최초생성일시, 최초생성자번호, 최종변경일시     , 최종변경자번호    */
+              (QSTN_UPD_ARAM_ST_CD, PRO_RGST_SNO, CNTR_CD_ID      , RNTL_YN    , PRO_CD        , PRC_NO   , FWRD_CTNT        , EMP_USR_NO    , REQ_DTT           , REPA_RCP_NO       , DEL_YN       , FRST_CRT_DTT, FRST_CRTR_NO  , LAST_CHNG_DTT    , LAST_CHNGR_NO     )
+        SELECT  #{aramStatusName}, #{productRegistrationSno}, #{countryCodeId}, #{rentalYn}, #{productCode}, A1.PRC_NO, #{forwardContent}, #{empUsersNo} , #{requestDatetime}, #{repairReceiptNo}, #{deletionYn}, #{createdAt}, #{createdBy}  , #{lastModifiedAt}, #{lastModifiedBy}
+        FROM    (
+                 SELECT  (
+                            WITH CTE AS (
+                                SELECT  ROW_NUMBER() OVER (ORDER BY B1.VLD_STRT_DTT DESC, B1.FRST_CRT_DTT DESC) AS ROW_NUM,
+                                        B1.PRC_NO                                                       /* 가격번호 */
+                                FROM    TB_HAC_CLN_SVC_PRC_REQ_BAS B1
+                                WHERE   B1.PRO_CD = #{productCode}                                      /* 제품코드 */
+                                AND     #{requestDatetime} BETWEEN B1.VLD_STRT_DTT AND B1.VLD_EXPI_DTT  /* 유효시작일시, 유효만료일시 */
+                            )
+                            SELECT PRC_NO FROM CTE A1 WHERE A1.ROW_NUM = 1
+                         ) AS PRC_NO
+                ) A1
+        <selectKey resultType="java.math.BigDecimal" keyProperty="cleaningSno" order="AFTER">
+            SELECT  MAX(A1.CLN_SNO)             /* 세척일련번호 */
+            FROM    TB_HAC_CLN_SVC_REQ_BAS  A1  /* [세척서비스요청기본] */
+        </selectKey>
+    </insert>
+</mapper>

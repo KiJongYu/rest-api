@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hac.rest.v1.cleaning.domain.service.dao.ServiceIntroductionDAO">
+    <!--
+        블로그 표시 조건(다건인 경우 제일 최근 Publish로 변경된 데이터를 표시)
+        1. 앱 버전이 Target Ver 이상인 경우
+        2. 상태 값이 Publish(DB에서의 'BLOG_ST_2')인 경우
+        3. 현재 일시가 유효시작일시와 같거나 이후 이면서 유효만료일시와 같거나 이전인 경우
+     -->
+    <select id="selectOne" resultType="com.hac.rest.v1.cleaning.domain.service.dto.ServiceIntroductionView">
+        SELECT  A1.BLOG_ID                      AS BLOG_ID,
+                FN_GET_CODE_NAME(A1.BLOG_TP_CD) AS SERVICE_TITLE,
+                A1.TTL_NM                       AS BLOG_TITLE
+        FROM    TB_HAC_BLOG_BAS                 A1
+        WHERE   FN_CHECK_VERSION(#{appVersion}, TRGT_VSN_SNO)
+            AND A1.CNTR_CD_ID  = #{countryCode}
+            AND A1.ST_CD       = 'BLOG_ST_2' /* BANR_ST_1(Draft), BLOG_ST_2(Publish) */
+            AND A1.BLOG_TP_CD  = FN_GET_CODE_ID(('BLOG_TP_IM'), #{blogTypeValue})
+            AND A1.DEL_YN      = 'N'
+            AND (NOW() BETWEEN A1.PSTG_STRT_DTT AND A1.PSTG_END_DTT) /* PSTG_STRT_DTT, PSTG_END_DTT -> UTC 시간 */
+        ORDER BY
+                A1.LAST_CHNG_DTT DESC
+        LIMIT 1 /* Admin화면설계서 정책(CM-2), Publish 된 후 수정이 불가하므로 Publish 된 블로그의 마지막 수정일 중 1개로 체크하면 된다. */
+    </select>
+
+    <select id="selectBlogContentList" resultType="com.hac.rest.v1.cleaning.domain.service.dto.ServiceIntroductionBlogContentOne">
+        SELECT  A1.CARD_SNO             AS BLOG_CONTENT_ID,
+                A1.BLOG_CTNT            AS BLOG_CONTENT
+        FROM    TB_HAC_BLOG_CARD_DTL    A1
+        WHERE   A1.DEL_YN   = 'N'
+            AND A1.BLOG_ID  = #{blogId}
+        ORDER BY
+                A1.CARD_SNO
+    </select>
+
+    <select id="selectAttachFileList" resultType="com.hac.rest.v1.cleaning.domain.service.dto.ServiceIntroductionAttachFileOne">
+        SELECT  A1.FILE_TP_DIV_CD           AS FILE_TYPE_CODE,
+                A1.FILE_URL                 AS FILE_URL,
+                A1.SBST_TXT_CTNT            AS ALT_TEXT_CONTENT,
+                A1.TMNL_URL                 AS THUMBNAIL_URL
+        FROM    TB_HAC_BLOG_CARD_ATCH_DTL   A1
+        WHERE   A1.DEL_YN   = 'N'
+            AND A1.BLOG_ID  = #{blogId}
+            AND A1.CARD_SNO = #{blogContentId}
+        ORDER BY
+                A1.ATCH_SNO
+    </select>
+</mapper>

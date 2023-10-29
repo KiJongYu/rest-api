@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.survey.product.reg.dao.ProductRegistrationDAO">
+    <select id="selectListBy" parameterType="com.hac.rest.v1.cleaning.domain.survey.product.reg.dto.ProductRegistrationQuery" resultType="com.hac.rest.v1.cleaning.domain.survey.product.reg.dto.ProductRegistrationOne">
+        SELECT  A1.PRO_RGST_SNO         AS PRODUCT_REGISTRATION_SNO,    /* 제품등록 일련번호 */
+                A1.NKNM                 AS PRODUCT_NICK_NAME,           /* 제품 별명 */
+                A1.PRO_GRP_CD           AS PRODUCT_GROUP_CODE,          /* 제품그룹코드 */
+                B1.PRO_NM               AS PRODUCT_GROUP_NAME,          /* 제품그룹명 */
+                A1.PRO_CD               AS PRODUCT_CODE,                /* 제품코드 */
+                A1.PRO_PURC_DT          AS PRODUCT_PURCHASE_ON,         /* 제품 구매일 */
+                A1.CLN_DT               AS PRODUCT_CLEANING_ON          /* 제품 세척일 */
+        FROM    TB_HAC_PRO_REST_BAS     A1  /* HAC 제품등록기본 */
+        LEFT JOIN
+                TB_HAC_PROD_BAS         B1  /* HAC 제품서비스범위기본 */
+            ON  B1.PRO_CD       = A1.PRO_GRP_CD
+        WHERE   A1.EMP_USR_NO   = #{currentEmpUsersNo}
+            AND A1.PRO_RGST_SNO IN  <foreach item="productRegistrationSno" collection="productRegistrationSnoList" open="(" separator="," close=")">
+                                        #{productRegistrationSno}
+                                    </foreach>
+    </select>
+
+    <select id="countBy" resultType="integer">
+        SELECT  COUNT(1)
+        FROM    TB_HAC_PRO_REST_BAS A1
+        WHERE   EMP_USR_NO  = #{userNo}
+          AND A1.DEL_YN     = 'N'
+    </select>
+
+    <select id="countNickNameBy" resultType="integer">
+        SELECT  COUNT(1)
+        FROM    TB_HAC_PRO_REST_BAS A1
+        WHERE   A1.EMP_USR_NO               = #{userNo}
+            AND A1.DEL_YN                   = 'N'
+            AND REPLACE(UPPER(A1.NKNM), ' ', '')   = REPLACE(#{newNickName}, ' ', '')
+        <if test="null != productRegistrationSno">
+            AND A1.PRO_RGST_SNO             != #{productRegistrationSno}
+        </if>
+    </select>
+</mapper>

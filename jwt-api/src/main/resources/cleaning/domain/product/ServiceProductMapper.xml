@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hac.rest.v1.cleaning.domain.product.dao.ServiceProductDAO">
+    <select id="selectListByGroup"  parameterType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductQuery" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductGroupTree">
+        SELECT  A1.PRO_CD           AS PRODUCT_GROUP_CODE,    /* 제품그룹코드 */
+                A1.PRO_NM           AS PRODUCT_GROUP_NAME     /* 제품그룹명 */
+        FROM    TB_HAC_PROD_BAS A1
+        <where>
+            <if test="null != productGroupCode and '' != productGroupCode">
+            AND A1.PRO_CD       = #{productGroupCode} /* 제품그룹코드 */
+            AND A1.PRO_TP_CD    = 'G'                 /* 그룹유형만 조회 가능 */
+            </if>
+            <if test="null == productGroupCode or '' == productGroupCode">
+            AND A1.UPR_PRO_CD   = 'HAC000'            /* 조회조건 default 가전세척만 조회 */
+            </if>
+            AND A1.POST_YN      = 'Y'
+            AND A1.DEL_YN       = 'N'
+        </where>
+        ORDER BY
+                A1.EXPS_SEQ
+    </select>
+
+    <select id="selectListByType"  parameterType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductQuery" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductTypeOne">
+        SELECT  A1.PRO_CD           AS PRODUCT_TYPE_CODE,   /* 제품유형코드 */
+                A1.PRO_NM           AS PRODUCT_TYPE_NAME    /* 제품유형명 */
+        FROM    TB_HAC_PROD_BAS A1
+        WHERE   A1.UPR_PRO_CD   = #{upperProductGroupCode}
+            AND A1.PRO_TP_CD    = 'Y'                       /* 제품유형코드가 Y(TYPE)인 것만 */
+            AND A1.POST_YN      = 'Y'
+            AND A1.DEL_YN       = 'N'
+        ORDER BY
+                A1.EXPS_SEQ
+    </select>
+
+    <select id="selectOne" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductOne">
+        WITH    CB_PRODUCT
+        AS      (
+                SELECT  A1.PRO_CD,
+                        A1.PRO_NM,
+                        A1.ATTR_LEVE_VAL,
+                        ROUND(IFNULL(B1.PROD_PRC, 0))
+                                            AS PROD_PRC,
+                        B1.PRC_NO
+                FROM    TB_HAC_PROD_BAS     A1
+                LEFT OUTER JOIN
+                        TB_HAC_CLN_SVC_PRC_REQ_BAS  B1
+                    ON  B1.PRO_CD           = A1.PRO_CD
+                    AND UTC_TIMESTAMP BETWEEN B1.VLD_STRT_DTT AND B1.VLD_EXPI_DTT
+                WHERE   A1.PRO_CD           = #{productCode}
+                ORDER BY
+                        B1.VLD_STRT_DTT DESC,
+                        B1.FRST_CRT_DTT DESC
+                LIMIT   1
+        ),      CB_DISCOUNT_PRICE
+        AS      ( /* 할인가격 조회 */
+                SELECT  A1.PRO_CD,
+                        B1.PRC_NO,
+                        B1.DC_SNO,
+                        C1.DCTRT,
+                        C1.LG_DC_PRC
+                FROM    CB_PRODUCT                      A1
+                INNER JOIN
+                        TB_HAC_CLN_SVC_PRC_SC_BAS       B1
+                    ON  B1.PRC_NO       = A1.PRC_NO
+                INNER JOIN
+                        TB_HAC_CLN_SVC_PRC_REQ_DC_DTL   C1
+                    ON  C1.DC_SNO   = B1.DC_SNO
+                    AND UTC_TIMESTAMP BETWEEN C1.DC_VLD_STRT_DTT AND C1.VLD_EXPL_DTT
+                ORDER BY
+                        C1.DC_VLD_STRT_DTT DESC,
+                        C1.FRST_CRT_DTT DESC
+                LIMIT   1
+        )
+        SELECT  A1.PRO_CD           AS PRODUCT_CODE, /* 제품코드*/
+                A1.PRO_NM           AS PRODUCT_NAME, /* 제품명 */
+                A1.ATTR_LEVE_VAL    AS SFDC_PRODUCT_CODE, /* SFDC 제품코드*/
+                IFNULL(B1.LG_DC_PRC, A1.PROD_PRC) /* 등록된 할인 가격이 없다면, 기본 가격을 응답 */
+                                    AS SERVICE_COST, /* 서비스비용 */
+                IF(B1.LG_DC_PRC IS NULL, 'N', 'Y')
+                                    AS DISCOUNT_YN /* 할인여부 */
+        FROM    CB_PRODUCT          A1
+        LEFT OUTER JOIN
+                CB_DISCOUNT_PRICE   B1
+            ON  B1.PRO_CD           = A1.PRO_CD
+    </select>
+
+    <select id="selectListByProduct"  parameterType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductQuery" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductOne">
+        WITH CTE AS (
+            SELECT  A1.PRO_CD,
+                    A1.PRO_NM,
+                    B1.PROD_PRC,
+                    'KRW',
+                    A1.EXPS_SEQ,
+                    B1.PRC_NO,
+                    ROW_NUMBER() OVER(PARTITION BY B1.PRO_CD ORDER BY B1.VLD_STRT_DTT DESC, B1.FRST_CRT_DTT DESC) AS ROW_NUM /* 같은 제품에 유효기간이 존재하는 가격일 경우 해당 조건 중 1개로 판별한다. */
+            FROM    TB_HAC_PROD_BAS     A1
+            INNER JOIN /* 가격없는 것 제외 */
+                    TB_HAC_CLN_SVC_PRC_REQ_BAS  B1
+                ON  B1.PRO_CD       = A1.PRO_CD
+                AND NOW() BETWEEN B1.VLD_STRT_DTT AND B1.VLD_EXPI_DTT
+            WHERE   A1.UPR_PRO_CD   = #{upperProductTypeCode}
+                AND A1.PRO_TP_CD    = 'P' /* 제품유형코드가 P(Product)인 것만 */
+                AND A1.POST_YN      = 'Y'
+                AND A1.DEL_YN       = 'N'
+                AND NOW() BETWEEN A1.VLD_STRT_DTT AND A1.VLD_EXPL_DTT
+        )
+        SELECT  A1.PRO_CD                       AS PRODUCT_CODE, /* 제품코드 */
+                A1.PRO_NM                       AS PRODUCT_NAME, /* 제품명 */
+                ROUND(A1.PROD_PRC)              AS SERVICE_COST, /* 서비스비용 */
+                A1.PRC_NO                       AS PRICE_NO, /* 가격번호 */
+                'KRW'                           AS CURRENCY_CODE /* 가격통화단위 (한국에서만 서비스 되서 일단 고정값 지정) */
+        FROM    CTE     A1
+        WHERE   A1.ROW_NUM  = 1
+            AND A1.PROD_PRC !=0 /* 가격없는 것 제외 */
+        ORDER BY
+                A1.EXPS_SEQ
+    </select>
+
+    <select id="getProductForSmileAPI" resultType="com.hac.rest.v1.cleaning.domain.product.dto.SmileServiceProductOne">
+        SELECT  A1.PRO_CD                       AS PRODUCT_CODE,
+                A1.PRO_NM                       AS PRODUCT_NAME,
+                A1.ATTR_LEVE_VAL                AS SMILE_PRODUCT_CODE, /* 가전세척_API 제품코드에 매핑되어있는 smile_API 제품코드 값 */
+                'KRW'                           AS CURRENCY_CODE,
+                A1.PRO_SYMP_CD                  AS PRODUCT_SYMPTOM_CODE,
+                A1.PRO_SUB_SYMP_CD              AS PRODUCT_SUB_SYMPTOM_CODE
+        FROM    TB_HAC_PROD_BAS A1
+        WHERE   A1.PRO_CD = #{productCode}
+    </select>
+
+    <select id="selectProductPrice" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductPriceOne">
+        SELECT  A1.PRC_NO                   AS PRICE_NO,
+                ROUND(A1.PROD_PRC)          AS SERVICE_COST
+        FROM    TB_HAC_CLN_SVC_PRC_REQ_BAS  A1
+        WHERE   A1.PRO_CD = #{productCode}
+        ORDER BY
+                A1.VLD_STRT_DTT DESC,
+                A1.FRST_CRT_DTT DESC
+        LIMIT   1
+    </select>
+
+    <select id="selectListBy" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductTotalOne">
+        SELECT  A1.PRO_CD               AS PRODUCT_CODE,
+                A1.UPR_PRO_CD           AS UPPER_PRODUCT_CODE,
+                A1.PRO_NM               AS PRODUCT_NAME,
+                A1.PRO_TP_CD            AS PRODUCT_TYPE_CODE
+        FROM    TB_HAC_PROD_BAS     A1 /* HAC제품서비스범위기본 */
+        WHERE   A1.DEL_YN   = 'N'
+            AND CASE
+                    WHEN (A1.PRO_TP_CD = 'G' OR A1.PRO_TP_CD = 'Y' OR A1.PRO_TP_CD = 'T') AND A1.POST_YN = 'Y'
+                        THEN TRUE
+                    WHEN (A1.PRO_TP_CD = 'P' AND A1.POST_YN = 'Y' AND NOW() BETWEEN A1.VLD_STRT_DTT AND A1.VLD_EXPL_DTT)
+                        THEN TRUE
+                    ELSE FALSE
+                END
+    </select>
+
+    <select id="countBy" resultType="integer">
+        SELECT  COUNT(1)
+        FROM    TB_HAC_PROD_BAS     A1 /* HAC제품서비스범위기본 */
+        WHERE   A1.DEL_YN   = 'N'
+            AND A1.POST_YN  = 'Y'
+        <if test="null != productCode or '' != productCode">
+            AND PRO_CD = #{productCode}
+        </if>
+    </select>
+
+    <select id="selectListPriceDiscountBy" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductPriceDiscountOne">
+        SELECT  B1.PRC_NO           AS PRICE_NO,
+                A1.DC_SNO           AS DISCOUNT_SNO,
+                A1.DCTRT            AS DISCOUNT_RATE,
+                A1.LG_DC_PRC        AS DISCOUNT_PRICE,
+                A1.DC_VLD_STRT_DTT  AS DISCOUNT_VALID_START_DATE_TIME,
+                A1.VLD_EXPL_DTT     AS DISCOUNT_VALID_END_DATE_TIME
+        FROM    TB_HAC_CLN_SVC_PRC_REQ_DC_DTL   A1
+        INNER JOIN
+                TB_HAC_CLN_SVC_PRC_SC_BAS       B1
+            ON  B1.DC_SNO   = A1.DC_SNO
+        <where>
+            <if test="null != requestDateTime">
+                AND #{requestDateTime} BETWEEN A1.DC_VLD_STRT_DTT AND A1.VLD_EXPL_DTT
+            </if>
+        </where>
+        ORDER BY
+                A1.DC_VLD_STRT_DTT DESC, A1.FRST_CRT_DTT DESC
+    </select>
+
+    <select id="selectPriceDiscountBy" resultType="com.hac.rest.v1.cleaning.domain.product.dto.ServiceProductPriceDiscountOne">
+        SELECT  B1.PRC_NO       AS PRICE_NO,
+                A1.DC_SNO       AS DISCOUNT_SNO,
+                A1.DCTRT        AS DISCOUNT_RATE,
+                A1.LG_DC_PRC    AS DISCOUNT_PRICE
+        FROM    TB_HAC_CLN_SVC_PRC_REQ_DC_DTL   A1
+        INNER JOIN
+                TB_HAC_CLN_SVC_PRC_SC_BAS       B1
+            ON  B1.DC_SNO   = A1.DC_SNO
+            AND B1.PRC_NO   = #{priceNo}
+        <where>
+            <if test="null != requestDateTime">
+                AND #{requestDateTime} BETWEEN A1.DC_VLD_STRT_DTT AND A1.VLD_EXPL_DTT
+            </if>
+        </where>
+        ORDER BY
+                A1.DC_VLD_STRT_DTT DESC, A1.FRST_CRT_DTT DESC
+        LIMIT 1
+    </select>
+</mapper>

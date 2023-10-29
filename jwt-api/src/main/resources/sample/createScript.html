@@ -1,0 +1,190 @@
+<html>
+
+<head>
+<meta charset="UTF-8" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
+<script>
+    let orderedRows = {};
+    window.addEventListener("load", function() {
+        document.getElementById("file").addEventListener("change", event => readExcel(event));
+        document.getElementById("tableEng").addEventListener("keydown", function (event) {
+            // console.log("$$ event.code: " + event.code);
+            if ("Enter" === event.code) {
+                const textarea = document.getElementById("script");
+                textarea.value = "";
+                for (let sheetName in orderedRows) {
+                    getScripts(sheetName);
+                }
+            }
+        });
+    });
+    function consolelog(text) {
+        const textarea = document.getElementById("log");
+
+        if (0 < text.length) {
+            if (0 < textarea.value.length ) textarea.value += "\n";
+            textarea.value += text;
+        }
+    }
+    const getScripts = function (sheetName) {
+        let beforeTableEng;
+        let endDelimiter = "";
+        let pkScript = "";
+        let commentScript = "";
+
+        const tableEngSearchKey = document.getElementById("tableEng").value;
+        const rows = (0 === tableEngSearchKey.length ? orderedRows[sheetName] :
+            orderedRows[sheetName].filter(row =>
+                null != row["테이블"] && 0 < row["테이블"].length && tableEngSearchKey.toLowerCase() === row["테이블"].toLowerCase()));
+        console.log("$$ orderedRows[sheetName].length: " + orderedRows[sheetName].length);
+        console.log("$$ rows.length: " + rows.length);
+        rows.forEach(function (row) {
+            const getColumnEng = function (row) {
+                const COLUMN_ENG_KEY = "컬럼";
+                let result = row[COLUMN_ENG_KEY];
+
+                if (null != result) result = result.toLowerCase();
+                return result;
+            };
+            const getTableEng = function (row) {
+                const TABLE_ENG_KEY = "테이블";
+                let result = row[TABLE_ENG_KEY];
+
+                if (null != result) result = result.toLowerCase();
+                return result;
+            };
+            const getTableKor = function (row) {return row["엔터티"];};
+            const getColumnKor = function (row) {return row["속성"];};
+            const getColumnType = function (row) {
+                const COLUMN_TYPE_KEY = "데이터유형";
+                const COLUMN_LENGTH_KEY = "길이";
+                const columnType = row[COLUMN_TYPE_KEY];
+                const columnLength = row[COLUMN_LENGTH_KEY];
+                let result;
+
+                if ("DATETIME" === columnType) {
+                    result = "TIMESTAMP";
+                } else if ("INTEGER(p)" === columnType) {
+                    result = "INTEGER";
+                } else {
+                    result = columnType;
+                }
+                if ("INTEGER" === columnType) {
+                } else {
+                    if (null != columnLength && 0 < columnLength.length) {
+                        result += "(" + columnLength + ")";
+                    }
+                }
+                return result;
+            };
+            const getNotNull = function (row) {return ("Y" === row["NOT NULL"] ? "NOT NULL" : "");};
+            const getDefault = function (row) {
+                const DEFAULT_KEY = "기본값";
+
+                if ("now()" === row[DEFAULT_KEY]) {
+                    return "DEFAULT CURRENT_TIMESTAMP";
+                } else if (null != row[DEFAULT_KEY] && 0 < row[DEFAULT_KEY].length) {
+                    if (0 <= row[DEFAULT_KEY].indexOf('"')) {
+                        return "DEFAULT " + row[DEFAULT_KEY].replaceAll('"', "'");
+                    } else {
+                        return "DEFAULT '" + row[DEFAULT_KEY] + "'";
+                    }
+                } else {
+                    return row[DEFAULT_KEY];
+                }
+            };
+            const isPk = function (row) {return ("Y" === row["PK"]);};
+            const columnEng = getColumnEng(row);
+            const tableEng = getTableEng(row);
+            const tableKor = getTableKor(row);
+            const columnKor = getColumnKor(row);
+            let result = "";
+
+            if (null != columnEng) {
+                if (beforeTableEng !== tableEng) {
+                    if (0 < pkScript.length) pkScript += ")\n";
+                    // result = pkScript + endDelimiter + "\n" + commentScript + "\nDROP TABLE IF EXISTS " + tableEng + "\nCREATE TABLE " + tableEng + " (\n";
+                    result = `${pkScript}${endDelimiter}
+${commentScript}
+DROP TABLE IF EXISTS ${tableEng};
+CREATE TABLE ${tableEng}
+(
+`;
+                    pkScript = "";
+                    if (0 === endDelimiter.length) endDelimiter = ");"
+                    // alter table annual_leave comment = '연차'
+                    commentScript = "ALTER TABLE " + tableEng + " COMMENT = '" + tableKor + "';\n"
+                }
+                if (isPk(row)) {
+                    if (0 === pkScript.length) {
+                        pkScript = "    CONSTRAINT " + tableEng + "_pk\n" + "        primary key (";
+                    } else {
+                        pkScript += ", ";
+                    }
+                    pkScript += columnEng;
+                }
+                result = append(result, "    ", getColumnEng(row));
+                result = append(result, " ", getColumnType(row));
+                result = append(result, " ", getDefault(row));
+                result = append(result, " ", getNotNull(row));
+                result = append(result, " ", "COMMENT '" + columnKor + "'");
+                result += ", ";
+                write(result);
+            }
+            beforeTableEng = tableEng;
+        });
+        if (0 < pkScript.length) pkScript += ")\n";
+        write(pkScript + endDelimiter + "\n" + commentScript);
+    };
+    function readExcel(event) {
+        let input = event.target;
+        let reader = new FileReader();
+
+        reader.onload = function () {
+            let data = reader.result;
+            let workBook = XLSX.read(data, { type: 'binary' });
+            workBook.SheetNames.forEach(function (sheetName) {
+                consolelog('SheetName: ' + sheetName);
+                const rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                const sortKey = document.getElementById("sort").value;
+                orderedRows[sheetName] = (0 < sortKey.length ? rows.sort(function(a, b) {
+                        const key = "컬럼순번";
+                        const x = a["테이블"] + ("000" + a[key]).substr(-3);
+                        const y = b["테이블"] + ("000" + b[key]).substr(-3);
+
+                        return (x < y ? -1 : (x > y ? 1 : 0));
+                    }) : rows);
+                getScripts(sheetName);
+            })
+        };
+        reader.readAsBinaryString(input.files[0]);
+    }
+    function append(source, delimiter, data) {
+        let result = source;
+
+        if (null != data && 0 < data.toString().length) {
+            if (null != delimiter && 0 < delimiter.toString().length) result += delimiter;
+            result += data;
+        }
+        return result;
+    }
+    function write(text) {
+        const textarea = document.getElementById("script");
+
+        if (0 < text.length) {
+            if (0 < textarea.value.length ) textarea.value += "\n";
+            textarea.value += text;
+        }
+    }
+</script>
+</head>
+
+<body>
+    <input type="file" id="file" />
+    <input type="text" id="sort" placeholder="파일선택전 엑셀 파일내 컬럼일련번호를 입력한 TITLE; 미입력시 정렬없이 그대로 생성; ex.) 컬럼순번" value="" style="width: 700px" /><br />
+    <input type="text" id="tableEng" placeholder="테이블영문명 조회조건 입력 후 ENTER; ex.) tb_hac_SPC_iqr_bac" value="" style="width: 400px" />
+    <textarea id="script" style="height: 400px; width: 100%"></textarea>
+    <textarea id="log" style="height: 50px; width: 100%"></textarea>
+</body>
+
+</html>
